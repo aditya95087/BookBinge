@@ -21,7 +21,8 @@ import HelpCenterPage from "./pages/HelpCenterPage";
 import PrivacypolicyPage from "./pages/PrivacypolicyPage";
 import TermsAndCondition from "./pages/Terms&Condition";
 import LatestUpdatesPage from "./components/LatestUpdate";
-
+import AdminPage from "./pages/AdminPage";
+import Admin_login from "./pages/Admin_login";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,8 @@ function App() {
             <Route path="/help" element={<HelpCenterPage/>} />
             <Route path="/privacy" element={<PrivacypolicyPage/>} />
             <Route path="/terms" element={<TermsAndCondition />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin_login" element={<Admin_login />} />
           </Routes>
         </main>
         <Footer/>
