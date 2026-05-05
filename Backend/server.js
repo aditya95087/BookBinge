@@ -13,15 +13,19 @@ app.use(
     credentials: true,
   })
 );
-
 app.use(express.json());
 
 /* ================= CONSTANTS ================= */
-const JWT_SECRET = "SUPER_SECRET_KEY";
+const JWT_SECRET = process.env.JWT_SECRET || "SUPER_SECRET_KEY";
+
+/* ================= ROOT ROUTE ================= */
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
 
 /* ================= MONGODB ================= */
 mongoose
-  .connect(process.env.MONGO_URI)   // 🔥 CHANGE HERE
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
@@ -82,9 +86,15 @@ const isAdmin = (req, res, next) => {
 };
 
 /* ================= ROUTES ================= */
+
+// REGISTER
 app.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -104,16 +114,17 @@ app.post("/register", async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Registration failed" });
   }
 });
 
+// LOGIN
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -127,6 +138,10 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
+    if (!user.isActive) {
+      return res.status(403).json({ message: "Account blocked" });
+    }
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       JWT_SECRET,
@@ -137,15 +152,26 @@ app.post("/login", async (req, res) => {
       message: "Login successful",
       token,
       role: user.role,
-      user,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Login failed" });
   }
 });
 
+// ADMIN USERS (optional)
+app.get("/admin/users", protect, isAdmin, async (req, res) => {
+  const users = await User.find({}, "-password");
+  res.json(users);
+});
+
 /* ================= SERVER ================= */
-const PORT = process.env.PORT || 8080;   // 🔥 CHANGE HERE
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
