@@ -38,20 +38,20 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 🔐 ROLE-BASED ACCESS
+    // ROLE-BASED ACCESS
     role: {
       type: String,
       enum: ["admin", "user"],
       default: "user",
     },
 
-    // 🚫 BLOCK / UNBLOCK USER
+    //  BLOCK / UNBLOCK USER
     isActive: {
       type: Boolean,
       default: true,
     },
 
-    // 🕒 TRACK LOGIN
+    //  TRACK LOGIN
     lastLogin: {
       type: Date,
       default: null,

@@ -7,7 +7,13 @@ const bcrypt = require("bcrypt");
 const app = express();
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://bookbinge-frontend-mgw0.onrender.com",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 /* ================= CONSTANTS ================= */
@@ -15,7 +21,7 @@ const JWT_SECRET = "SUPER_SECRET_KEY";
 
 /* ================= MONGODB ================= */
 mongoose
-  .connect("mongodb://127.0.0.1:27017/BookBinge")
+  .connect(process.env.MONGO_URI)   // 🔥 CHANGE HERE
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
@@ -40,7 +46,6 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
-    // 🔑 IMPORTANT FIX
     isRegistered: {
       type: Boolean,
       default: false,
@@ -76,16 +81,10 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
-/* ================= REGISTER ================= */
+/* ================= ROUTES ================= */
 app.post("/register", async (req, res) => {
   try {
-    console.log("REGISTER BODY:", req.body);
-
     const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "All fields required" });
-    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -99,22 +98,18 @@ app.post("/register", async (req, res) => {
       email,
       password: hashedPassword,
       role: "user",
-      isRegistered: true,   // ✅ FIX
+      isRegistered: true,
       isActive: true,
     });
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error("❌ Register Error:", error);
     res.status(500).json({ message: "Registration failed" });
   }
 });
 
-/* ================= LOGIN ================= */
 app.post("/login", async (req, res) => {
   try {
-    console.log("LOGIN BODY:", req.body);
-
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
@@ -123,7 +118,6 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // ❌ USER NOT REGISTERED (CORE FIX)
     if (user.role === "user" && user.isRegistered !== true) {
       return res.status(403).json({ message: "Please register first" });
     }
@@ -131,10 +125,6 @@ app.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    if (!user.isActive) {
-      return res.status(403).json({ message: "Account blocked" });
     }
 
     const token = jwt.sign(
@@ -147,46 +137,16 @@ app.post("/login", async (req, res) => {
       message: "Login successful",
       token,
       role: user.role,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user,
     });
-  } catch (error) {
-    console.error("❌ Login Error:", error);
+  } catch {
     res.status(500).json({ message: "Login failed" });
   }
 });
 
-/* ================= ADMIN: GET USERS ================= */
-app.get("/admin/users", protect, isAdmin, async (req, res) => {
-  const users = await User.find({}, "-password");
-  res.json(users);
-});
-
-/* ================= CREATE ADMIN (ONE TIME) ================= */
-app.post("/create-admin", async (req, res) => {
-  const admin = await User.findOne({ role: "admin" });
-  if (admin) {
-    return res.status(400).json({ message: "Admin already exists" });
-  }
-
-  const hashedPassword = await bcrypt.hash("admin123", 10);
-
-  await User.create({
-    name: "Admin",
-    email: "admin@gmail.com",
-    password: hashedPassword,
-    role: "admin",
-    isRegistered: false, // ✅ IMPORTANT
-    isActive: true,
-  });
-
-  res.json({ message: "Admin created successfully" });
-});
-
 /* ================= SERVER ================= */
-app.listen(8080, () => {
-  console.log("🚀 Server running on port 8080");
+const PORT = process.env.PORT || 8080;   // 🔥 CHANGE HERE
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });

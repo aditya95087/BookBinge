@@ -198,7 +198,8 @@ const AdminDashboard = () => {
     try {
       setLoadingUsers(true);
 
-      const res = await fetch("http://localhost:8080/admin/users", {
+      const API = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${API}/admin/users`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },

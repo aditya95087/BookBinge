@@ -86,7 +86,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8080/login", {
+      const API = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${API}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
